@@ -75,7 +75,7 @@ function App() {
       messages: []
     };
     setCurrentConversation(newConv);
-    setConversations([newConv, ...conversations]);
+    setConversations((prev) => [newConv, ...prev]);
   };
 
   const handleSelectConversation = (conversation) => {
@@ -83,19 +83,22 @@ function App() {
   };
 
   const handleAddMessage = (message) => {
-    if (currentConversation) {
+    setCurrentConversation((prevCurrent) => {
+      if (!prevCurrent) return prevCurrent;
+
       const updatedConv = {
-        ...currentConversation,
-        messages: [...currentConversation.messages, message]
+        ...prevCurrent,
+        messages: [...prevCurrent.messages, message]
       };
-      setCurrentConversation(updatedConv);
-      
-      // Update in conversations list
-      const updatedConversations = conversations.map(conv =>
-        conv.id === updatedConv.id ? updatedConv : conv
+
+      setConversations((prevConversations) =>
+        prevConversations.map((conv) =>
+          conv.id === updatedConv.id ? updatedConv : conv
+        )
       );
-      setConversations(updatedConversations);
-    }
+
+      return updatedConv;
+    });
   };
 
   const handleDeleteConversation = (conversationId) => {
