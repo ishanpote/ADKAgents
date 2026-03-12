@@ -5,7 +5,7 @@ import AgentSelector from './components/AgentSelector';
 import ConversationHistory from './components/ConversationHistory';
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000';
 
 function App() {
   const [agents, setAgents] = useState([]);
@@ -24,10 +24,24 @@ function App() {
   const fetchAgents = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_BASE_URL}/agents`);
-      setAgents(response.data.agents || []);
-      if (response.data.agents && response.data.agents.length > 0) {
-        setSelectedAgent(response.data.agents[0]);
+      // ADK api_server exposes /list-apps. Keep /agents fallback for compatibility.
+      let parsedAgents = [];
+      try {
+        const response = await axios.get(`${API_BASE_URL}/list-apps`);
+        const appNames = Array.isArray(response.data) ? response.data : [];
+        parsedAgents = appNames.map((name) => ({
+          id: name,
+          name,
+          description: 'ADK agent'
+        }));
+      } catch (_) {
+        const response = await axios.get(`${API_BASE_URL}/agents`);
+        parsedAgents = response.data.agents || [];
+      }
+
+      setAgents(parsedAgents);
+      if (parsedAgents.length > 0) {
+        setSelectedAgent(parsedAgents[0]);
       }
       setError(null);
     } catch (err) {
