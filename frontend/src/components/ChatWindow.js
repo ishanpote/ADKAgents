@@ -50,10 +50,17 @@ function ChatWindow({ conversation, agent, onAddMessage }) {
       const sessionId = String(conversation.id);
 
       // Ensure session exists for this conversation.
-      await axios.post(
-        `${API_BASE_URL}/apps/${encodeURIComponent(appName)}/users/${encodeURIComponent(userId)}/sessions`,
-        { sessionId }
-      );
+      try {
+        await axios.post(
+          `${API_BASE_URL}/apps/${encodeURIComponent(appName)}/users/${encodeURIComponent(userId)}/sessions`,
+          { sessionId }
+        );
+      } catch (sessionErr) {
+        const detail = sessionErr?.response?.data?.detail || '';
+        if (!String(detail).includes('Session already exists')) {
+          throw sessionErr;
+        }
+      }
 
       const response = await axios.post(`${API_BASE_URL}/run`, {
         appName,
