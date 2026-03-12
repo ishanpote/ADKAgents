@@ -2,7 +2,17 @@ import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import './ChatWindow.css';
 
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000';
+
+const getAgentReplyText = (data) => {
+  // ADK may return a single event object or an array of events.
+  const events = Array.isArray(data) ? data : [data];
+  const texts = events
+    .flatMap((event) => event?.content?.parts || [])
+    .map((part) => part?.text)
+    .filter(Boolean);
+  return texts.join('\n').trim();
+};
 
 function ChatWindow({ conversation, agent, onAddMessage }) {
   const [inputValue, setInputValue] = useState('');
@@ -35,21 +45,39 @@ function ChatWindow({ conversation, agent, onAddMessage }) {
     setError(null);
 
     try {
-      // Simulate agent response for now
-      // In production, you'd call the actual ADK API
-      setTimeout(() => {
-        const agentMessage = {
-          id: Date.now() + 1,
-          sender: 'agent',
-          content: `Message received by ${agent.name}. This is a demo response.`,
-          timestamp: new Date()
-        };
-        onAddMessage(agentMessage);
-        setLoading(false);
-      }, 500);
+      const appName = agent.id || agent.name;
+      const userId = 'web-user';
+      const sessionId = String(conversation.id);
+
+      // Ensure session exists for this conversation.
+      await axios.post(
+        `${API_BASE_URL}/apps/${encodeURIComponent(appName)}/users/${encodeURIComponent(userId)}/sessions`,
+        { sessionId }
+      );
+
+      const response = await axios.post(`${API_BASE_URL}/run`, {
+        appName,
+        userId,
+        sessionId,
+        newMessage: {
+          role: 'user',
+          parts: [{ text: userMessage.content }]
+        }
+      });
+
+      const replyText = getAgentReplyText(response.data) || 'No response from agent.';
+      const agentMessage = {
+        id: Date.now() + 1,
+        sender: 'agent',
+        content: replyText,
+        timestamp: new Date()
+      };
+      onAddMessage(agentMessage);
     } catch (err) {
       console.error('Error sending message:', err);
-      setError('Failed to send message');
+      const apiMessage = err?.response?.data?.detail;
+      setError(apiMessage || 'Failed to send message');
+    } finally {
       setLoading(false);
     }
   };
