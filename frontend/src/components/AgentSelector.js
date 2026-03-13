@@ -9,18 +9,15 @@ function AgentSelector({ agents, selectedAgent, onSelectAgent }) {
         <span className="agent-count">{agents.length}</span>
       </div>
       <div className="agents-list">
-        {agents.map((agent, i) => (
+        {agents.map((agent) => (
           <button
             key={agent.id}
             className={`agent-item ${selectedAgent?.id === agent.id ? 'active' : ''}`}
             onClick={() => onSelectAgent(agent)}
             title={agent.description}
           >
-            <div
-              className="agent-avatar"
-              style={{ background: agent.color || 'linear-gradient(135deg, #3b82f6, #8b5cf6)' }}
-            >
-              {agent.avatar || '🤖'}
+            <div className="agent-avatar" style={{ background: agent.color || '#059669' }}>
+              {agent.avatar || '✦'}
             </div>
             <div className="agent-info">
               <span className="agent-name">{agent.name}</span>
