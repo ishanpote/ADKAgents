@@ -7,8 +7,8 @@ from tools.date_tool import get_current_datetime
 MODEL = "ollama/llama3"
 
 root_agent = Agent(
-    name="basic_agent",
-    model = "gemini-2.0-flash",
+    name="basic_tool_agent",
+    model=LiteLlm(model=MODEL),
     instruction="""
         You are a helpful and friendly assistant.
         Greet the user warmly when the conversation begins.
