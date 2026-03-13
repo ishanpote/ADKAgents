@@ -6,6 +6,7 @@ import ConversationHistory from './components/ConversationHistory';
 import axios from 'axios';
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000';
+const CHAT_STATE_KEY = 'adk-chat-state-v1';
 
 const AGENT_AVATARS = ['✦', '◈', '⬡', '◎', '⊕', '❋', '◐', '⬢'];
 const AGENT_COLORS  = [
@@ -21,6 +22,34 @@ function App() {
   const [loading,             setLoading]             = useState(true);
   const [error,               setError]               = useState(null);
   const [sidebarOpen,         setSidebarOpen]         = useState(true);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(CHAT_STATE_KEY);
+      if (!raw) return;
+      const saved = JSON.parse(raw);
+      if (Array.isArray(saved.conversations)) setConversations(saved.conversations);
+      if (saved.currentConversationId) {
+        const found = (saved.conversations || []).find(c => c.id === saved.currentConversationId);
+        if (found) setCurrentConversation(found);
+      }
+    } catch {
+      // Ignore malformed persisted state and continue with fresh session.
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      const payload = {
+        selectedAgentId: selectedAgent?.id || null,
+        currentConversationId: currentConversation?.id || null,
+        conversations,
+      };
+      localStorage.setItem(CHAT_STATE_KEY, JSON.stringify(payload));
+    } catch {
+      // Ignore storage write failures (private mode/quota).
+    }
+  }, [selectedAgent, currentConversation, conversations]);
 
   useEffect(() => { fetchAgents(); }, []);
 
@@ -45,7 +74,9 @@ function App() {
         }));
       }
       setAgents(parsed);
-      if (parsed.length) setSelectedAgent(parsed[0]);
+      const saved = JSON.parse(localStorage.getItem(CHAT_STATE_KEY) || '{}');
+      const preferred = parsed.find(a => a.id === saved.selectedAgentId) || parsed[0] || null;
+      if (preferred) setSelectedAgent(preferred);
       setError(null);
     } catch {
       const fallback = [
@@ -59,7 +90,9 @@ function App() {
         color:  AGENT_COLORS[i  % AGENT_COLORS.length],
       }));
       setAgents(fallback);
-      setSelectedAgent(fallback[0]);
+      const saved = JSON.parse(localStorage.getItem(CHAT_STATE_KEY) || '{}');
+      const preferred = fallback.find(a => a.id === saved.selectedAgentId) || fallback[0] || null;
+      if (preferred) setSelectedAgent(preferred);
       setError('Demo mode — connect the ADK server to go live.');
     } finally {
       setLoading(false);
@@ -68,8 +101,6 @@ function App() {
 
   const handleSelectAgent = (agent) => {
     setSelectedAgent(agent);
-    setCurrentConversation(null);
-    setConversations([]);
   };
 
   const handleNewConversation = () => {
