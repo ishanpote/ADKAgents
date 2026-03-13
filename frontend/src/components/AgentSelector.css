@@ -1,130 +1,81 @@
 .agent-selector {
-  padding: 14px 14px 10px;
-  border-bottom: 1px solid var(--glass-border);
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--border);
 }
 
 .agent-selector-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 10px;
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 9px;
 }
 
 .agent-selector-header h3 {
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: var(--text-3);
-  text-transform: uppercase;
-  letter-spacing: 1px;
+  font-size: 0.67rem; font-weight: 600;
+  color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.8px;
 }
 
 .agent-count {
-  font-size: 0.7rem;
-  color: var(--accent-1);
-  background: rgba(110,182,255,0.1);
-  border: 1px solid rgba(110,182,255,0.15);
-  padding: 2px 7px;
-  border-radius: 20px;
-  font-weight: 600;
+  font-size: 0.68rem; font-weight: 600;
+  color: var(--emerald); background: var(--em-lt);
+  padding: 2px 7px; border-radius: 20px;
 }
 
 .agents-list {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
+  display: flex; flex-direction: column; gap: 4px;
 }
 
 .agent-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 11px;
-  background: var(--bg-surface);
-  border: 1px solid var(--glass-border);
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 10px;
+  background: transparent;
+  border: 1px solid transparent;
   border-radius: var(--r-sm);
   cursor: pointer;
-  transition: all 0.22s var(--ease);
-  text-align: left;
-  position: relative;
-  overflow: hidden;
+  transition: all 0.18s var(--ease);
+  text-align: left; width: 100%;
 }
 
-.agent-item::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, rgba(110,182,255,0.07), rgba(167,139,250,0.07));
-  opacity: 0;
-  transition: opacity 0.2s;
+.agent-item:hover {
+  background: var(--bg-card);
+  border-color: var(--border);
+  box-shadow: var(--shadow-xs);
 }
-
-.agent-item:hover { 
-  background: var(--bg-surface-2);
-  border-color: rgba(110,182,255,0.25);
-  transform: translateX(3px);
-}
-
-.agent-item:hover::before { opacity: 1; }
 
 .agent-item.active {
-  background: linear-gradient(135deg, rgba(110,182,255,0.12), rgba(167,139,250,0.12));
-  border-color: rgba(110,182,255,0.4);
-  box-shadow: 0 0 20px rgba(110,182,255,0.08), inset 0 1px 0 rgba(255,255,255,0.05);
+  background: var(--bg-card);
+  border-color: var(--border-mid);
+  box-shadow: var(--shadow-sm);
 }
-
-.agent-item.active::before { opacity: 1; }
 
 .agent-avatar {
-  width: 30px;
-  height: 30px;
+  width: 30px; height: 30px;
   border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  flex-shrink: 0;
-  position: relative;
-  z-index: 1;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700;
+  color: white; flex-shrink: 0;
+  letter-spacing: 0;
 }
 
-.agent-info {
-  flex: 1;
-  min-width: 0;
-  position: relative;
-  z-index: 1;
-}
+.agent-info { flex:1; min-width:0; }
 
 .agent-name {
-  font-size: 0.855rem;
-  font-weight: 600;
-  color: var(--text-1);
   display: block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 0.845rem; font-weight: 600; color: var(--ink-1);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin-bottom: 1px;
 }
 
 .agent-desc {
-  font-size: 0.72rem;
-  color: var(--text-3);
   display: block;
-  margin-top: 1px;
+  font-size: 0.71rem; color: var(--ink-3); line-height: 1.3;
 }
 
 .agent-status {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--accent-3);
-  opacity: 0.5;
-  flex-shrink: 0;
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--border-mid); flex-shrink: 0;
   transition: all 0.2s;
-  position: relative;
-  z-index: 1;
 }
 
 .agent-item.active .agent-status {
-  opacity: 1;
-  box-shadow: 0 0 10px var(--accent-3);
-  animation: pulse-dot 2s ease-in-out infinite;
+  background: var(--emerald);
+  box-shadow: 0 0 0 3px var(--em-lt);
 }
