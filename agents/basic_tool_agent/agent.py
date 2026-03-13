@@ -1,14 +1,20 @@
+from datetime import datetime
+
 from google.adk.agents import Agent
 from google.adk.models.lite_llm import LiteLlm
-from tools.date_tool import get_current_datetime
 
 
+def get_current_datetime():
+    """Returns current date/time for tool calls."""
+    return datetime.now().strftime(
+        "Hello! Today is %A, %d %B %Y and the time is %I:%M %p."
+    )
 
 MODEL = "ollama/llama3"
 
 root_agent = Agent(
-    name="basic_agent",
-    model = "gemini-2.0-flash",
+    name="basic_tool_agent",
+    model=LiteLlm(model=MODEL),
     instruction="""
         You are a helpful and friendly assistant.
         Greet the user warmly when the conversation begins.
