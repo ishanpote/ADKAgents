@@ -3,42 +3,34 @@ import axios from 'axios';
 import './ChatWindow.css';
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000';
-
-const REACTIONS = ['👍', '❤️', '😂', '🔥', '🤔'];
-
-const HINT_PROMPTS = [
+const REACTIONS    = ['👍', '❤️', '😄', '🔥', '🤔'];
+const HINTS = [
   'What can you help me with?',
   'Tell me about yourself',
-  'Show me an example',
+  'Give me an example',
   'What are your capabilities?',
 ];
 
-const getAgentReplyText = (data) => {
+const getReplyText = (data) => {
   const events = Array.isArray(data) ? data : [data];
-  const texts = events
-    .flatMap((event) => event?.content?.parts || [])
-    .map((part) => part?.text)
-    .filter(Boolean);
-  return texts.join('\n').trim();
+  return events
+    .flatMap(e => e?.content?.parts || [])
+    .map(p => p?.text)
+    .filter(Boolean)
+    .join('\n')
+    .trim();
 };
 
 function Message({ msg, agentAvatar, agentColor }) {
   const [reactions, setReactions] = useState({});
-
-  const toggleReaction = (emoji) => {
-    setReactions((prev) => ({ ...prev, [emoji]: !prev[emoji] }));
-  };
-
-  const activeReactions = REACTIONS.filter((e) => reactions[e]);
+  const toggle = (emoji) => setReactions(r => ({ ...r, [emoji]: !r[emoji] }));
+  const active = REACTIONS.filter(e => reactions[e]);
 
   return (
     <div className={`message ${msg.sender}`}>
       {msg.sender === 'agent' && (
-        <div
-          className="message-avatar"
-          style={{ background: agentColor || 'linear-gradient(135deg,#3b82f6,#8b5cf6)' }}
-        >
-          {agentAvatar || '🤖'}
+        <div className="message-avatar" style={{ background: agentColor || '#059669' }}>
+          {agentAvatar || '✦'}
         </div>
       )}
 
@@ -52,35 +44,24 @@ function Message({ msg, agentAvatar, agentColor }) {
             {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </span>
 
-          {/* Active reactions */}
-          {activeReactions.length > 0 && (
+          {active.length > 0 && (
             <div className="message-reactions">
-              {activeReactions.map((e) => (
-                <button key={e} className="reaction-btn active" onClick={() => toggleReaction(e)}>
-                  {e}
-                </button>
+              {active.map(e => (
+                <button key={e} className="reaction-btn active" onClick={() => toggle(e)}>{e}</button>
               ))}
             </div>
           )}
 
-          {/* Reaction picker (shown on hover via CSS) */}
           <div className="reaction-picker">
-            {REACTIONS.map((e) => (
-              <button key={e} className="reaction-pick-btn" onClick={() => toggleReaction(e)} title={e}>
-                {e}
-              </button>
+            {REACTIONS.map(e => (
+              <button key={e} className="reaction-pick-btn" onClick={() => toggle(e)} title={e}>{e}</button>
             ))}
           </div>
         </div>
       </div>
 
       {msg.sender === 'user' && (
-        <div
-          className="message-avatar"
-          style={{ background: 'linear-gradient(135deg,#1e293b,#334155)' }}
-        >
-          👤
-        </div>
+        <div className="message-avatar">👤</div>
       )}
     </div>
   );
@@ -88,35 +69,30 @@ function Message({ msg, agentAvatar, agentColor }) {
 
 function ChatWindow({ conversation, agent, onAddMessage }) {
   const [inputValue, setInputValue] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const messagesEndRef = useRef(null);
+  const [loading,    setLoading]    = useState(false);
+  const [error,      setError]      = useState(null);
+  const endRef  = useRef(null);
   const inputRef = useRef(null);
 
   const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
 
   useEffect(() => { scrollToBottom(); }, [conversation.messages, scrollToBottom]);
 
   const sendMessage = async (text) => {
-    if (!text.trim() || !agent) return;
+    const trimmed = text.trim();
+    if (!trimmed || !agent) return;
 
-    const userMessage = {
-      id: Date.now(),
-      sender: 'user',
-      content: text,
-      timestamp: new Date(),
-    };
-
-    onAddMessage(userMessage);
+    const userMsg = { id: Date.now(), sender: 'user', content: trimmed, timestamp: new Date() };
+    onAddMessage(userMsg);
     setInputValue('');
     setLoading(true);
     setError(null);
 
     try {
-      const appName = agent.id || agent.name;
-      const userId = 'web-user';
+      const appName   = agent.id || agent.name;
+      const userId    = 'web-user';
       const sessionId = String(conversation.id);
 
       try {
@@ -124,50 +100,38 @@ function ChatWindow({ conversation, agent, onAddMessage }) {
           `${API_BASE_URL}/apps/${encodeURIComponent(appName)}/users/${encodeURIComponent(userId)}/sessions`,
           { sessionId }
         );
-      } catch (sessionErr) {
-        const detail = sessionErr?.response?.data?.detail || '';
-        if (!String(detail).includes('Session already exists')) throw sessionErr;
+      } catch (e) {
+        if (!String(e?.response?.data?.detail || '').includes('Session already exists')) throw e;
       }
 
-      const response = await axios.post(`${API_BASE_URL}/run`, {
-        appName,
-        userId,
-        sessionId,
-        newMessage: { role: 'user', parts: [{ text }] },
+      const res = await axios.post(`${API_BASE_URL}/run`, {
+        appName, userId, sessionId,
+        newMessage: { role: 'user', parts: [{ text: trimmed }] },
       });
 
-      const replyText = getAgentReplyText(response.data) || 'No response from agent.';
-      const agentMessage = {
+      onAddMessage({
         id: Date.now() + 1,
         sender: 'agent',
-        content: replyText,
+        content: getReplyText(res.data) || 'No response from agent.',
         timestamp: new Date(),
-      };
-      onAddMessage(agentMessage);
+      });
     } catch (err) {
-      console.error('Error sending message:', err);
-      setError(err?.response?.data?.detail || 'Failed to send message. Is the ADK server running?');
+      setError(err?.response?.data?.detail || 'Failed to send — is the ADK server running?');
     } finally {
       setLoading(false);
       inputRef.current?.focus();
     }
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    sendMessage(inputValue);
-  };
+  const handleSubmit = (e) => { e.preventDefault(); sendMessage(inputValue); };
 
   return (
     <div className="chat-window">
-      {/* ── Header ── */}
+      {/* Header */}
       <div className="chat-header">
         <div className="chat-header-left">
-          <div
-            className="chat-agent-avatar"
-            style={{ background: agent?.color || 'linear-gradient(135deg,#3b82f6,#8b5cf6)' }}
-          >
-            {agent?.avatar || '🤖'}
+          <div className="chat-agent-avatar" style={{ background: agent?.color || '#059669' }}>
+            {agent?.avatar || '✦'}
           </div>
           <div className="chat-header-info">
             <h2>{agent?.name || 'Agent'}</h2>
@@ -176,49 +140,35 @@ function ChatWindow({ conversation, agent, onAddMessage }) {
         </div>
         <div className="chat-header-right">
           <div className="online-chip">
-            <span className="online-dot" />
-            Online
+            <span className="online-dot" /> Online
           </div>
         </div>
       </div>
 
-      {/* ── Messages ── */}
+      {/* Messages */}
       <div className="messages-container">
         {conversation.messages.length === 0 ? (
           <div className="empty-messages">
-            <div className="empty-icon">{agent?.avatar || '💬'}</div>
-            <p>Start a conversation with <strong>{agent?.name}</strong></p>
+            <div className="empty-icon" style={{ background: agent?.color || '#059669' }}>
+              {agent?.avatar || '✦'}
+            </div>
+            <p>Start chatting with <strong>{agent?.name}</strong></p>
             <div className="empty-hint">
-              {HINT_PROMPTS.map((prompt) => (
-                <button
-                  key={prompt}
-                  className="hint-chip"
-                  onClick={() => sendMessage(prompt)}
-                  disabled={loading}
-                >
-                  {prompt}
-                </button>
+              {HINTS.map(h => (
+                <button key={h} className="hint-chip" onClick={() => sendMessage(h)} disabled={loading}>{h}</button>
               ))}
             </div>
           </div>
         ) : (
           <>
-            {conversation.messages.map((msg) => (
-              <Message
-                key={msg.id}
-                msg={msg}
-                agentAvatar={agent?.avatar}
-                agentColor={agent?.color}
-              />
+            {conversation.messages.map(msg => (
+              <Message key={msg.id} msg={msg} agentAvatar={agent?.avatar} agentColor={agent?.color} />
             ))}
 
             {loading && (
               <div className="typing-indicator">
-                <div
-                  className="message-avatar"
-                  style={{ background: agent?.color || 'linear-gradient(135deg,#3b82f6,#8b5cf6)' }}
-                >
-                  {agent?.avatar || '🤖'}
+                <div className="message-avatar" style={{ background: agent?.color || '#059669' }}>
+                  {agent?.avatar || '✦'}
                 </div>
                 <div className="typing-bubble">
                   <div className="typing-dot" />
@@ -229,20 +179,16 @@ function ChatWindow({ conversation, agent, onAddMessage }) {
               </div>
             )}
 
-            <div ref={messagesEndRef} />
+            <div ref={endRef} />
           </>
         )}
       </div>
 
-      {/* ── Error ── */}
       {error && (
-        <div className="error-message">
-          <span className="error-icon">⚠️</span>
-          {error}
-        </div>
+        <div className="error-message">⚠ {error}</div>
       )}
 
-      {/* ── Input ── */}
+      {/* Input */}
       <div className="input-area">
         <form className="input-form" onSubmit={handleSubmit}>
           <div className="input-wrapper">
@@ -250,13 +196,13 @@ function ChatWindow({ conversation, agent, onAddMessage }) {
               ref={inputRef}
               type="text"
               value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
+              onChange={e => setInputValue(e.target.value)}
               placeholder={`Message ${agent?.name || 'agent'}…`}
               disabled={loading}
               className="message-input"
               maxLength={2000}
             />
-            {inputValue.length > 100 && (
+            {inputValue.length > 80 && (
               <span className="char-count">{inputValue.length}/2000</span>
             )}
           </div>
@@ -264,12 +210,12 @@ function ChatWindow({ conversation, agent, onAddMessage }) {
             type="submit"
             disabled={loading || !inputValue.trim()}
             className="send-button"
-            title="Send message"
+            title="Send (Enter)"
           >
-            {loading ? '⏳' : '➤'}
+            {loading ? '…' : '→'}
           </button>
         </form>
-        <p className="input-hint">Press Enter to send · Hover messages to react</p>
+        <p className="input-hint">Enter to send · Hover a message to react</p>
       </div>
     </div>
   );
