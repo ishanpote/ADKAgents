@@ -7,70 +7,60 @@ import axios from 'axios';
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000';
 
-// Emoji avatars for agents
-const AGENT_AVATARS = ['🤖', '🧠', '⚡', '🔮', '🛸', '💎', '🌊', '🔥'];
-const AGENT_COLORS = [
-  'linear-gradient(135deg, #3b82f6, #8b5cf6)',
-  'linear-gradient(135deg, #06b6d4, #3b82f6)',
-  'linear-gradient(135deg, #10b981, #06b6d4)',
-  'linear-gradient(135deg, #f59e0b, #ef4444)',
-  'linear-gradient(135deg, #8b5cf6, #ec4899)',
-  'linear-gradient(135deg, #34d399, #3b82f6)',
-  'linear-gradient(135deg, #f97316, #f59e0b)',
-  'linear-gradient(135deg, #ec4899, #8b5cf6)',
+const AGENT_AVATARS = ['✦', '◈', '⬡', '◎', '⊕', '❋', '◐', '⬢'];
+const AGENT_COLORS  = [
+  '#059669','#0284c7','#7c3aed','#b45309',
+  '#be185d','#0f766e','#4338ca','#c2410c',
 ];
 
 function App() {
-  const [agents, setAgents] = useState([]);
-  const [selectedAgent, setSelectedAgent] = useState(null);
-  const [conversations, setConversations] = useState([]);
+  const [agents,              setAgents]              = useState([]);
+  const [selectedAgent,       setSelectedAgent]       = useState(null);
+  const [conversations,       setConversations]       = useState([]);
   const [currentConversation, setCurrentConversation] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [loading,             setLoading]             = useState(true);
+  const [error,               setError]               = useState(null);
+  const [sidebarOpen,         setSidebarOpen]         = useState(true);
 
   useEffect(() => { fetchAgents(); }, []);
 
   const fetchAgents = async () => {
     try {
       setLoading(true);
-      let parsedAgents = [];
+      let parsed = [];
       try {
-        const response = await axios.get(`${API_BASE_URL}/list-apps`);
-        const appNames = Array.isArray(response.data) ? response.data : [];
-        parsedAgents = appNames.map((name, i) => ({
-          id: name,
-          name,
-          description: 'ADK agent',
+        const res = await axios.get(`${API_BASE_URL}/list-apps`);
+        const names = Array.isArray(res.data) ? res.data : [];
+        parsed = names.map((name, i) => ({
+          id: name, name, description: 'ADK agent',
           avatar: AGENT_AVATARS[i % AGENT_AVATARS.length],
-          color: AGENT_COLORS[i % AGENT_COLORS.length],
+          color:  AGENT_COLORS[i  % AGENT_COLORS.length],
         }));
-      } catch (_) {
-        const response = await axios.get(`${API_BASE_URL}/agents`);
-        const raw = response.data.agents || [];
-        parsedAgents = raw.map((a, i) => ({
+      } catch {
+        const res = await axios.get(`${API_BASE_URL}/agents`);
+        parsed = (res.data.agents || []).map((a, i) => ({
           ...a,
           avatar: AGENT_AVATARS[i % AGENT_AVATARS.length],
-          color: AGENT_COLORS[i % AGENT_COLORS.length],
+          color:  AGENT_COLORS[i  % AGENT_COLORS.length],
         }));
       }
-      setAgents(parsedAgents);
-      if (parsedAgents.length > 0) setSelectedAgent(parsedAgents[0]);
+      setAgents(parsed);
+      if (parsed.length) setSelectedAgent(parsed[0]);
       setError(null);
-    } catch (err) {
+    } catch {
       const fallback = [
-        { id: 'Agent1/basicagent', name: 'basicagent', description: 'Greeting agent' },
-        { id: 'Agent2/assisstant_agent', name: 'assisstant_agent', description: 'Assistant agent' },
-        { id: 'Structuredagent/email_agent', name: 'email_agent', description: 'Email agent' },
-        { id: 'Tool_agent/basic_agent', name: 'basic_agent', description: 'Tool agent' },
+        { id:'Agent1/basicagent',          name:'basicagent',      description:'Greeting agent'   },
+        { id:'Agent2/assisstant_agent',     name:'assistant_agent', description:'Assistant agent'  },
+        { id:'Structuredagent/email_agent', name:'email_agent',     description:'Email agent'      },
+        { id:'Tool_agent/basic_agent',      name:'basic_agent',     description:'Tool agent'       },
       ].map((a, i) => ({
         ...a,
         avatar: AGENT_AVATARS[i % AGENT_AVATARS.length],
-        color: AGENT_COLORS[i % AGENT_COLORS.length],
+        color:  AGENT_COLORS[i  % AGENT_COLORS.length],
       }));
       setAgents(fallback);
       setSelectedAgent(fallback[0]);
-      setError('Demo mode — start ADK server to connect.');
+      setError('Demo mode — connect the ADK server to go live.');
     } finally {
       setLoading(false);
     }
@@ -83,60 +73,52 @@ function App() {
   };
 
   const handleNewConversation = () => {
-    const newConv = {
+    const conv = {
       id: Date.now(),
       agent: selectedAgent?.name || 'Unknown',
       agentObj: selectedAgent,
       timestamp: new Date(),
       messages: [],
     };
-    setCurrentConversation(newConv);
-    setConversations((prev) => [newConv, ...prev]);
+    setCurrentConversation(conv);
+    setConversations(prev => [conv, ...prev]);
   };
 
-  const handleSelectConversation = (conversation) => {
-    setCurrentConversation(conversation);
-  };
+  const handleSelectConversation = (conv) => setCurrentConversation(conv);
 
   const handleAddMessage = (message) => {
-    setCurrentConversation((prevCurrent) => {
-      if (!prevCurrent) return prevCurrent;
-      const updatedConv = { ...prevCurrent, messages: [...prevCurrent.messages, message] };
-      setConversations((prev) =>
-        prev.map((c) => (c.id === updatedConv.id ? updatedConv : c))
-      );
-      return updatedConv;
+    setCurrentConversation(prev => {
+      if (!prev) return prev;
+      const updated = { ...prev, messages: [...prev.messages, message] };
+      setConversations(all => all.map(c => c.id === updated.id ? updated : c));
+      return updated;
     });
   };
 
-  const handleDeleteConversation = (conversationId) => {
-    setConversations((prev) => prev.filter((c) => c.id !== conversationId));
-    if (currentConversation?.id === conversationId) setCurrentConversation(null);
+  const handleDeleteConversation = (id) => {
+    setConversations(prev => prev.filter(c => c.id !== id));
+    if (currentConversation?.id === id) setCurrentConversation(null);
   };
 
-  // Stats
-  const totalMessages = conversations.reduce((acc, c) => acc + c.messages.length, 0);
+  const totalMessages = conversations.reduce((n, c) => n + c.messages.length, 0);
 
   return (
     <div className="app">
-      <div className="app-bg-grid" />
-
-      {/* ── Header ── */}
+      {/* Header */}
       <header className="app-header">
         <div className="header-content">
-          <button className="sidebar-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>☰</button>
+          <button className="sidebar-toggle" onClick={() => setSidebarOpen(o => !o)}>☰</button>
           <div className="header-logo">
             <div className="logo-mark">🤖</div>
             <h1>ADK Agent Chat</h1>
-            <span className="header-pill">LIVE</span>
+            <span className="header-tagline">Intelligent agents, simply</span>
           </div>
           <div className="header-status">
-            {loading && <span className="status loading">Connecting…</span>}
-            {error   && <span className="status error" title={error}>⚠️</span>}
+            {loading  && <span className="status loading">Connecting…</span>}
+            {error    && <span className="status error" title={error}>⚠ Demo</span>}
             {selectedAgent && (
               <span className="agent-badge">
-                <span className="badge-dot" />
-                {selectedAgent.name}
+                <span className="badge-dot" />{selectedAgent.name}
               </span>
             )}
           </div>
@@ -144,11 +126,9 @@ function App() {
       </header>
 
       <div className="app-container">
-        {/* ── Sidebar ── */}
+        {/* Sidebar */}
         <aside className={`sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
           <div className="sidebar-content">
-
-            {/* Stats */}
             <div className="sidebar-stats">
               <div className="stat-card">
                 <div className="stat-value">{agents.length}</div>
@@ -163,27 +143,22 @@ function App() {
                 <div className="stat-label">Messages</div>
               </div>
               <div className="stat-card">
-                <div className="stat-value">{selectedAgent ? '●' : '○'}</div>
+                <div className="stat-value" style={{ color: selectedAgent ? 'var(--emerald)' : 'var(--ink-3)' }}>
+                  {selectedAgent ? 'Live' : 'Idle'}
+                </div>
                 <div className="stat-label">Status</div>
               </div>
             </div>
 
-            {/* Agent Selector */}
-            <AgentSelector
-              agents={agents}
-              selectedAgent={selectedAgent}
-              onSelectAgent={handleSelectAgent}
-            />
+            <AgentSelector agents={agents} selectedAgent={selectedAgent} onSelectAgent={handleSelectAgent} />
 
-            {/* New Chat */}
             <div className="new-chat-btn-container">
               <button className="new-chat-btn" onClick={handleNewConversation} disabled={!selectedAgent}>
-                <span className="btn-icon">✦</span>
+                <span className="btn-icon">+</span>
                 <span className="btn-text">New Conversation</span>
               </button>
             </div>
 
-            {/* History */}
             <ConversationHistory
               conversations={conversations}
               currentConversationId={currentConversation?.id}
@@ -193,7 +168,7 @@ function App() {
           </div>
         </aside>
 
-        {/* ── Main ── */}
+        {/* Main */}
         <main className="main-content">
           {currentConversation ? (
             <ChatWindow
@@ -204,24 +179,24 @@ function App() {
           ) : (
             <div className="welcome-screen">
               <div className="welcome-content">
-                <div className="welcome-icon">🤖</div>
-                <h2>ADK Agent Platform</h2>
+                <span className="welcome-overline">ADK Platform</span>
+                <h2>Your agents, <em>ready to work</em></h2>
                 {selectedAgent ? (
                   <>
-                    <p>Connected to <strong>{selectedAgent.name}</strong></p>
+                    <p>Talking to <strong>{selectedAgent.name}</strong></p>
                     <p className="description">{selectedAgent.description}</p>
                     <button className="welcome-btn" onClick={handleNewConversation}>
-                      Start Conversation →
+                      Start a conversation →
                     </button>
                   </>
                 ) : (
                   <>
-                    <p>Select an agent from the sidebar to get started</p>
+                    <p>Pick an agent from the sidebar to begin.</p>
                     <div className="agent-list">
-                      {agents.map((agent) => (
-                        <div key={agent.id} className="agent-card" onClick={() => handleSelectAgent(agent)}>
-                          <h3>{agent.name}</h3>
-                          <p>{agent.description}</p>
+                      {agents.map(a => (
+                        <div key={a.id} className="agent-card" onClick={() => handleSelectAgent(a)}>
+                          <h3>{a.name}</h3>
+                          <p>{a.description}</p>
                         </div>
                       ))}
                     </div>
